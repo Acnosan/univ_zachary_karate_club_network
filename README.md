@@ -1,7 +1,11 @@
 ## Content:
-project_vlast.py : contains the zachary club class and methods
-project_tkinter.py : contains the tkinter interface logic
+project_vlast.py : contains the zachary club class and methods.
+
+project_tkinter.py : contains the tkinter interface logic.
 
 ## Requirements:
 To run the scripts you need:
 ``` pip install matplotlib networkx tk ```
+
+## To RUN:
+you have to type ``` py project_tkinter.py ``` in your chosen ide, python v3.11+ is necessary
