@@ -245,7 +245,6 @@ class TkinterInterface:
         root.mainloop()
 
 if __name__ == "__main__":
-    
     karate_club_nodes = {
         1: [2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 18, 20, 22, 32],
         2: [1, 3, 4, 8, 14, 18, 20, 22, 31],
@@ -282,7 +281,6 @@ if __name__ == "__main__":
         33: [3, 9, 15, 16, 19, 21, 23, 24, 29, 30, 31, 32, 34],
         34: [9, 10, 14, 15, 16, 19, 20, 21, 23, 24, 27, 30, 31, 32, 33]
     }
-
     graph_class = KarateClub(karate_club_nodes)
     graph = graph_class.build_graph()
     interface = TkinterInterface(graph)

@@ -26,7 +26,7 @@ class KarateClub:
     def visualize(self, graph, node_color="lightblue"):
         
         """ Visualization of the graph """
-        plt.figure(figsize=(18,10))
+        plt.figure(figsize=(14,6))
         nx.draw(graph, with_labels=True, node_color=node_color, node_size=600, font_size=12)
         plt.title("Zachary's Karate Club Network")
         plt.show()
@@ -35,6 +35,7 @@ class KarateClub:
         
         def count_size_order(graph):
             """ counting of the size and order of the graph"""
+            print("SIZE AND ORDER")
             print("="*30)
             size = graph.number_of_edges()
             order = len(self.karate_club_nodes)
@@ -44,21 +45,27 @@ class KarateClub:
         def degree_dist(graph):
             """ counting the degree distribution for each node"""
             print("="*30)
+            print("DEGREES DISTRIBUTION")
             degree_dist_dict = {}
             for node, degree in graph.degree():
                 degree_dist_dict[node] = degree
-                print(f"Node {node+1}: {degree} degree")
+                print(f"Node {node+1} degree: {degree}")
                 
         def clustering_coeff(graph):
             """ counting the clustering coefficient for each node and the average """
             print("="*30)
+            print("CLUSTERINGS")
             clustering_coeff = {}
             c_sum = 0
             for i in range(1,self.n_len):
                 neighbors = self.karate_club_nodes[i]
                 k = len(neighbors)
+                # for nodes with less than 2 neighbors
                 if k<2:
-                    return 0
+                    clustering_coeff[i] = 0.0
+                    print(f"Node {i} Coeff : {clustering_coeff[i]:.2f}")
+                    c_sum += clustering_coeff[i]
+                    continue 
                 links = 0
                 for u in neighbors:
                     for v in neighbors:
@@ -67,13 +74,14 @@ class KarateClub:
                 clustering_coeff[i] = (2 * links) / (k * (k - 1))
                 print(f"Node {i} Coeff : {(clustering_coeff[i]):.2f}")
                 c_sum += clustering_coeff[i]
-            print("Nx Average clustering coefficient:", nx.average_clustering(graph))
-            print(f"Manual Average clustering coefficient: {c_sum/self.n_len}")
+            print(f"Nx Average clustering coefficient: {nx.average_clustering(graph):.3f}")
+            print(f"Manual Average clustering coefficient: {c_sum/self.n_len:.3f}")
             return clustering_coeff
         
         def triangle_motif():
             """ counting the motif of the traingles """
             print("="*30)
+            print("MOTIFS (TRIANGLE)")
             adj_mat = self.adjacency()
             adj_mat_power_3 = np.linalg.matrix_power(adj_mat,3)
             triangle_counter = np.trace(adj_mat_power_3) // 6
@@ -84,29 +92,31 @@ class KarateClub:
         def kclique(graph):
             """ counting the k cliques """
             print("="*30)
+            print("K CLIQUES")
             cliques = list(nx.find_cliques(graph))
             print("Total Cliques number :", len(cliques))
             
             max_clique = max(cliques, key=len)
             print("Max clique size:", len(max_clique))
-            
-            print("Max Clique members :")
-            for c in cliques:
-                if len(c) == max(len(c) for c in cliques):
-                    print(c)
+
             return max_clique
         
         def kcores(graph, k=3):
             """ counting the k cores """
+            print("="*30)
+            print("K CORES")
             core = nx.k_core(graph, k=k)
-            print(f"Nodes in {k}-core: {core.nodes()}")
+            print(f"Nodes in {k}-core: {[core+1 for core in core.nodes()]}")
             
             core_numbers = nx.core_number(graph)
             max_core = max(core_numbers.values())
             print(f"Max Value in {k}-core : {max_core}")
+            
+            for node, core in core_numbers.items():
+                print(f"Node {node+1} core : {core}")
 
             kcore_subgraph = nx.k_core(graph, k=max_core)
-            print(f"Nodes of the Max {k}-core : {list(kcore_subgraph.nodes())}")
+            print(f"Nodes of the Max {k}-core : {[ node+1 for node in kcore_subgraph.nodes()]}")
             return core
 
         graph_size, graph_order = count_size_order(graph)
@@ -120,6 +130,7 @@ class KarateClub:
         graph = self.build_graph()
         self.visualize(graph)
         self.graph_metrics(graph)
+
 if __name__ == "__main__":
     karate_club_nodes = {
     1: [2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 18, 20, 22, 32],
