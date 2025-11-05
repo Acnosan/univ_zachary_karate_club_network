@@ -14,8 +14,9 @@ from project_vlast import KarateClub
 
 class TkinterInterface:
     
-    def __init__(self, G):
+    def __init__(self, G, metrics):
         self.G = G
+        self.metrics = metrics
         self.canvas: Optional[FigureCanvasTkAgg] = None
         self.entry_node: Optional[tk.Entry] = None
         self.entry_edge: Optional[tk.Entry] = None
@@ -33,7 +34,7 @@ class TkinterInterface:
         
         pos = nx.spring_layout(self.G)
         nx.draw(self.G, pos, with_labels=True, node_color="skyblue", 
-                node_size=600, font_size=8, ax=ax)
+                node_size=600, font_size=10, ax=ax)
         self.canvas.draw()
 
     def add_node(self):
@@ -102,12 +103,8 @@ class TkinterInterface:
 
     def show_info(self):
         """Display graph statistics."""
-        info = (
-            f"Order (nodes): {self.G.number_of_nodes()}\n"
-            f"Size (edges): {self.G.number_of_edges()}\n"
-            f"Average clustering: {nx.average_clustering(self.G):.3f}"
-        )
-        messagebox.showinfo("Graph Information", info)
+        results = self.metrics
+        messagebox.showinfo("Graph Information", results)
         
     
     def export_to_csv(self):
@@ -201,8 +198,7 @@ class TkinterInterface:
         root = tk.Tk()
         root.title("Network Analysis - Karate Club")
 
-        # Graph display area
-        self.fig = plt.figure(figsize=(5, 4))
+        self.fig = plt.figure(figsize=(12, 4))
         self.canvas = FigureCanvasTkAgg(self.fig, master=root)
         self.canvas.get_tk_widget().pack()
 
@@ -238,7 +234,7 @@ class TkinterInterface:
                 command=self.show_info).pack(pady=5)
         tk.Button(button_frame, text="Export to CSV", 
                         command=self.export_to_csv).pack(side=tk.LEFT, padx=5)
-        tk.Button(button_frame, text="Export to Image", 
+        tk.Button(button_frame, text="Export Graph to Image", 
                 command=self.export_to_image).pack(side=tk.LEFT, padx=5)
 
         self.draw_graph()
@@ -283,4 +279,5 @@ if __name__ == "__main__":
     }
     graph_class = KarateClub(karate_club_nodes)
     graph = graph_class.build_graph()
-    interface = TkinterInterface(graph)
+    metrics = graph_class.graph_metrics(graph)
+    interface = TkinterInterface(graph, metrics)

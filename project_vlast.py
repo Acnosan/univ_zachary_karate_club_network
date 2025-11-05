@@ -1,6 +1,7 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
+from typing import Dict, Tuple
 
 class KarateClub:
     def __init__(self, karate_club_nodes):
@@ -26,23 +27,23 @@ class KarateClub:
     def visualize(self, graph, node_color="lightblue"):
         
         """ Visualization of the graph """
-        plt.figure(figsize=(14,6))
+        plt.figure(figsize=(12,4))
         nx.draw(graph, with_labels=True, node_color=node_color, node_size=600, font_size=12)
         plt.title("Zachary's Karate Club Network")
         plt.show()
         
     def graph_metrics(self, graph):
         
-        def count_size_order(graph):
+        def count_size_order(graph) -> Tuple[int, int]:
             """ counting of the size and order of the graph"""
             print("SIZE AND ORDER")
             print("="*30)
-            size = graph.number_of_edges()
-            order = len(self.karate_club_nodes)
+            size = int(graph.number_of_edges())
+            order = int(len(self.karate_club_nodes))
             print(f"Graph Size :{size}, Order : {order}")
-            return size,order
+            return size, order
         
-        def degree_dist(graph):
+        def degree_dist(graph) -> Dict[int, float]:
             """ counting the degree distribution for each node"""
             print("="*30)
             print("DEGREES DISTRIBUTION")
@@ -50,44 +51,46 @@ class KarateClub:
             for node, degree in graph.degree():
                 degree_dist_dict[node] = degree
                 print(f"Node {node+1} degree: {degree}")
-                
-        def clustering_coeff(graph):
+            return degree_dist_dict
+        
+        def clustering_coeff(graph) -> Tuple[Dict[int, float], float]:
             """ counting the clustering coefficient for each node and the average """
             print("="*30)
             print("CLUSTERINGS")
-            clustering_coeff = {}
+            clustering_coeff_dict = {}
             c_sum = 0
             for i in range(1,self.n_len):
                 neighbors = self.karate_club_nodes[i]
                 k = len(neighbors)
                 # for nodes with less than 2 neighbors
                 if k<2:
-                    clustering_coeff[i] = 0.0
-                    print(f"Node {i} Coeff : {clustering_coeff[i]:.2f}")
-                    c_sum += clustering_coeff[i]
+                    clustering_coeff_dict[i] = 0.0
+                    print(f"Node {i} Coeff : {clustering_coeff_dict[i]:.2f}")
+                    c_sum += clustering_coeff_dict[i]
                     continue 
                 links = 0
                 for u in neighbors:
                     for v in neighbors:
                         if u < v and v in self.karate_club_nodes[u]:
                             links += 1
-                clustering_coeff[i] = (2 * links) / (k * (k - 1))
-                print(f"Node {i} Coeff : {(clustering_coeff[i]):.2f}")
-                c_sum += clustering_coeff[i]
-            print(f"Nx Average clustering coefficient: {nx.average_clustering(graph):.3f}")
-            print(f"Manual Average clustering coefficient: {c_sum/self.n_len:.3f}")
-            return clustering_coeff
+                clustering_coeff_dict[i] = (2 * links) / (k * (k - 1))
+                print(f"Node {i} Coeff : {(clustering_coeff_dict[i]):.2f}")
+                c_sum += clustering_coeff_dict[i]
+            average_clustering = round(c_sum/self.n_len,2)
+            print(f"Nx Average clustering coefficient: {round(nx.average_clustering(graph),2)}")
+            print(f"Manual Average clustering coefficient: {average_clustering}")
+            return clustering_coeff_dict, average_clustering
         
-        def triangle_motif():
+        def triangle_motif() -> int:
             """ counting the motif of the traingles """
             print("="*30)
             print("MOTIFS (TRIANGLE)")
             adj_mat = self.adjacency()
             adj_mat_power_3 = np.linalg.matrix_power(adj_mat,3)
-            triangle_counter = np.trace(adj_mat_power_3) // 6
-            print("Total Number of triangles is :", triangle_counter)
+            triangles_counter = np.trace(adj_mat_power_3) // 6
+            print("Total Number of triangles is :", triangles_counter)
             
-            return triangle_counter
+            return triangles_counter
         
         def kclique(graph):
             """ counting the k cliques """
@@ -97,7 +100,8 @@ class KarateClub:
             print("Total Cliques number :", len(cliques))
             
             max_clique = max(cliques, key=len)
-            print("Max clique size:", len(max_clique))
+            print(f"Max Clique {max_clique}")
+            print(f"Max Clique size: {len(max_clique)}")
 
             return max_clique
         
@@ -121,11 +125,19 @@ class KarateClub:
 
         graph_size, graph_order = count_size_order(graph)
         degree_dist_dict = degree_dist(graph)
-        clustering_coeff_dict = clustering_coeff(graph)
-        triangle_counter = triangle_motif()
+        clustering_coeff_dict, average_clustering = clustering_coeff(graph)
+        triangles_counter = triangle_motif()
         max_kclique = kclique(graph)
         kcores = kcores(graph)
-        
+
+        results = (
+            f"Order (nodes): {graph_order}\n"
+            f"Size (edges): {graph_size}\n"
+            f"Average clustering: {average_clustering}\n"
+            f"Triangles count: {triangles_counter}\n"
+        )
+        return results
+    
     def run_class(self):
         graph = self.build_graph()
         self.visualize(graph)
