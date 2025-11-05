@@ -1,7 +1,7 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List
 
 class KarateClub:
     def __init__(self, karate_club_nodes):
@@ -21,7 +21,10 @@ class KarateClub:
     def build_graph(self):
         """ to convert the adjacency matrix into networkx graph """
         adj_mat = self.adjacency()
-        return nx.from_numpy_array(adj_mat)
+        # using mapping here cause the nx uses 0-indexing, and we want the 1-indexing so we increase by 1 all nodes
+        mapping = {i: i+1 for i in range(self.n_len)}
+        graph = nx.relabel_nodes(nx.from_numpy_array(adj_mat), mapping)
+        return graph
     
     
     def visualize(self, graph, node_color="lightblue"):
@@ -59,7 +62,7 @@ class KarateClub:
             print("CLUSTERINGS")
             clustering_coeff_dict = {}
             c_sum = 0
-            for i in range(1,self.n_len):
+            for i in range(1,self.n_len+1):
                 neighbors = self.karate_club_nodes[i]
                 k = len(neighbors)
                 # for nodes with less than 2 neighbors
@@ -73,7 +76,7 @@ class KarateClub:
                     for v in neighbors:
                         if u < v and v in self.karate_club_nodes[u]:
                             links += 1
-                clustering_coeff_dict[i] = (2 * links) / (k * (k - 1))
+                clustering_coeff_dict[i] = round((2 * links) / (k * (k - 1)), 2)
                 print(f"Node {i} Coeff : {(clustering_coeff_dict[i]):.2f}")
                 c_sum += clustering_coeff_dict[i]
             average_clustering = round(c_sum/self.n_len,2)
@@ -92,7 +95,7 @@ class KarateClub:
             
             return triangles_counter
         
-        def kclique(graph):
+        def kclique(graph) -> List[int]:
             """ counting the k cliques """
             print("="*30)
             print("K CLIQUES")
@@ -110,17 +113,17 @@ class KarateClub:
             print("="*30)
             print("K CORES")
             core = nx.k_core(graph, k=k)
-            print(f"Nodes in {k}-core: {[core+1 for core in core.nodes()]}")
+            print(f"Nodes in {k}-core: {[core for core in core.nodes()]}")
             
             core_numbers = nx.core_number(graph)
             max_core = max(core_numbers.values())
             print(f"Max Value in {k}-core : {max_core}")
             
             for node, core in core_numbers.items():
-                print(f"Node {node+1} core : {core}")
+                print(f"Node {node} core : {core}")
 
             kcore_subgraph = nx.k_core(graph, k=max_core)
-            print(f"Nodes of the Max {k}-core : {[ node+1 for node in kcore_subgraph.nodes()]}")
+            print(f"Nodes of the Max {k}-core : {[ node for node in kcore_subgraph.nodes()]}")
             return core
 
         graph_size, graph_order = count_size_order(graph)
@@ -130,12 +133,15 @@ class KarateClub:
         max_kclique = kclique(graph)
         kcores = kcores(graph)
 
-        results = (
-            f"Order (nodes): {graph_order}\n"
-            f"Size (edges): {graph_size}\n"
-            f"Average clustering: {average_clustering}\n"
-            f"Triangles count: {triangles_counter}\n"
-        )
+        results = {
+            "Order (nodes)" : graph_order,
+            "Size (edges)" : graph_size,
+            "Degree Distribution" : degree_dist_dict,
+            "Clustering Coeff" : clustering_coeff_dict,
+            "Average Clustering" : average_clustering,
+            "Triangles Count" : triangles_counter,
+            "Max Kclique" : max_kclique,
+        }
         return results
     
     def run_class(self):

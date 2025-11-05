@@ -100,13 +100,55 @@ class TkinterInterface:
                 messagebox.showwarning("Error", "This edge does not exist.")
         except:
             messagebox.showerror("Error", "Enter two nodes separated by a space.")
-
+    
     def show_info(self):
         """Display graph statistics."""
         results = self.metrics
-        messagebox.showinfo("Graph Information", results)
+        lines = []
         
-    
+        # Simple metrics on top
+        simple = [f"{k}: {v}" for k, v in results.items() 
+                if not isinstance(v, (dict, list))]
+        if simple:
+            lines.append("\n".join(simple))
+            lines.append("")
+        
+        # Extract dictionaries
+        dicts = {k: v for k, v in results.items() if isinstance(v, dict)}
+        
+        if dicts:
+            # Column width
+            col_width = 25
+            
+            # Headers
+            headers = [f"{k:<{col_width}}" for k in dicts.keys()]
+            lines.append("".join(headers))
+            lines.append("-" * (col_width * len(dicts)))
+            
+            # Get max rows needed
+            max_rows = max(len(d) for d in dicts.values())
+            
+            # Build each row
+            for i in range(max_rows):
+                row = []
+                for _, dict_vals in dicts.items():
+                    items = list(dict_vals.items())
+                    if i < len(items):
+                        node_id, value = items[i]
+                        cell = f"node {node_id}: {value:.3f}"
+                        row.append(f"{cell:<{col_width}}")
+                    else:
+                        row.append(" " * col_width)
+                lines.append("".join(row))
+        
+        # Lists at the end
+        lists = [f"{k}: {v}" for k, v in results.items() if isinstance(v, list)]
+        if lists:
+            lines.append("")
+            lines.extend(lists)
+        
+        messagebox.showinfo("Graph Information", "\n".join(lines))
+
     def export_to_csv(self):
         """Export graph data to CSV file."""
         try:
@@ -122,33 +164,32 @@ class TkinterInterface:
             
             with open(file_path, 'w', newline='') as csvfile:
                 writer = csv.writer(csvfile)
-                
-                # Write nodes section
-                writer.writerow(["NODES"])
+                # for nodes
                 writer.writerow(["Node", "Degree", "Clustering Coefficient"])
                 for node in self.G.nodes():
-                    degree = self.G.degree(node)
-                    clustering = nx.clustering(self.G, node)
-                    writer.writerow([node, degree, f"{clustering:.3f}"])
+                    writer.writerow([
+                        node,
+                        self.metrics['Degree Distribution'][node],
+                        self.metrics['Clustering Coeff'][node],
+                        ])
+                writer.writerow([])
                 
-                writer.writerow([])  # Empty row
-                
-                # Write edges section
-                writer.writerow(["EDGES"])
+                # for edges
                 writer.writerow(["Source", "Target"])
                 for edge in self.G.edges():
                     writer.writerow([edge[0], edge[1]])
                 
-                writer.writerow([])  # Empty row
+                writer.writerow([])
                 
-                # Write summary statistics
-                writer.writerow(["STATISTICS"])
+                # for statistics
                 writer.writerow(["Metric", "Value"])
-                writer.writerow(["Total Nodes", self.G.number_of_nodes()])
-                writer.writerow(["Total Edges", self.G.number_of_edges()])
-                writer.writerow(["Average Clustering", f"{nx.average_clustering(self.G):.3f}"])
+                writer.writerow(["Total Nodes", self.metrics["graph_order"]])
+                writer.writerow(["Total Edges", self.metrics["graph_size"]])
+                writer.writerow(["Average Clustering", self.metrics["average_clustering"]])
                 writer.writerow(["Density", f"{nx.density(self.G):.3f}"])
-            
+                writer.writerow(["Total Triangles", self.metrics["Triangles Count"]])
+                writer.writerow(["Max Kclique", self.metrics["Max Kclique"]])
+                
             messagebox.showinfo("Success", f"Data exported to:\n{file_path}")
             
         except Exception as e:
