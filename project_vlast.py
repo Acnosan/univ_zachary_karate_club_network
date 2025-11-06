@@ -1,7 +1,7 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
-from typing import Dict, Tuple, List
+from typing import Dict, Tuple, List, Any
 
 class KarateClub:
     def __init__(self, karate_club_nodes):
@@ -46,13 +46,13 @@ class KarateClub:
             print(f"Graph Size :{size}, Order : {order}")
             return size, order
         
-        def degree_dist(graph) -> Dict[int, float]:
+        def degree_dist(graph) -> Dict[int, int]:
             """ counting the degree distribution for each node"""
             print("="*30)
             print("DEGREES DISTRIBUTION")
             degree_dist_dict = {}
             for node, degree in graph.degree():
-                degree_dist_dict[node] = degree
+                degree_dist_dict[node] = int(degree)
                 print(f"Node {node+1} degree: {degree}")
             return degree_dist_dict
         
@@ -126,21 +126,67 @@ class KarateClub:
             print(f"Nodes of the Max {k}-core : {[ node for node in kcore_subgraph.nodes()]}")
             return core
 
+        def centrality_mesures(graph) -> Tuple[Dict[str,Dict[int, Any]], Dict[str, str]]:
+            """ counting the centrality mesures"""
+            print("="*30)
+            print("CENTRALITY")
+
+            # Degree Centrality
+            degree_centrality = nx.degree_centrality(graph)
+            max_node_deg = int(max(degree_centrality, key=lambda x: degree_centrality[x]))
+            print(f"Most central (degree): Node {max_node_deg} : {degree_centrality[max_node_deg]:.2f}")
+            
+            # Closeness Centrality
+            closeness_centrality = nx.closeness_centrality(graph)
+            max_node_close = int(max(closeness_centrality, key=lambda x: closeness_centrality[x]))
+            print(f"Most central (closeness): Node {max_node_close} :{closeness_centrality[max_node_close]:.2f}")
+            
+            # Betweenness Centrality
+            betweenness_centrality = nx.betweenness_centrality(graph)
+            max_node_bet = int(max(betweenness_centrality, key=lambda x: betweenness_centrality[x]))
+            print(f"Most central (betweenness): Node {max_node_bet} : {betweenness_centrality[max_node_bet]:.2f}")
+
+            # Eigenvector Centrality
+            eigenvector_centrality = nx.eigenvector_centrality(graph)
+            max_node_eig = int(max(eigenvector_centrality, key=lambda x: eigenvector_centrality[x]))
+            print(f"Most central (eigenvector): Node {max_node_eig} : {eigenvector_centrality[max_node_eig]:.2f}")
+
+            return (
+                {
+                "Cent Degree": degree_centrality,
+                "Cent Closeness": closeness_centrality,
+                "Cent Betweenness": betweenness_centrality,
+                "Cent Eigenvector": eigenvector_centrality,
+                },
+                {
+                "Max Cent Degree": f"Node {max_node_deg} : {degree_centrality[max_node_deg]:.2f}", 
+                "Max Cent Closeness":  f"Node {max_node_close} : {closeness_centrality[max_node_close]:.2f}", 
+                "Max Cent Betweenness":  f"Node {max_node_bet} : {betweenness_centrality[max_node_bet]:.2f}", 
+                "Max Cent Eigenvector":  f"Node {max_node_eig} : {eigenvector_centrality[max_node_eig]:.2f}", 
+                }
+            )
+        
         graph_size, graph_order = count_size_order(graph)
         degree_dist_dict = degree_dist(graph)
         clustering_coeff_dict, average_clustering = clustering_coeff(graph)
         triangles_counter = triangle_motif()
         max_kclique = kclique(graph)
         kcores = kcores(graph)
-
+        cent_mesures_dict, max_cent_mesures = centrality_mesures(graph)
+        
         results = {
             "Order (nodes)" : graph_order,
             "Size (edges)" : graph_size,
-            "Degree Distribution" : degree_dist_dict,
+            "Degree Dist" : degree_dist_dict,
             "Clustering Coeff" : clustering_coeff_dict,
-            "Average Clustering" : average_clustering,
+            "Avg Clustering" : average_clustering,
             "Triangles Count" : triangles_counter,
             "Max Kclique" : max_kclique,
+            "Centrality Mesures": cent_mesures_dict,
+            "Max Cent Degree": max_cent_mesures["Max Cent Degree"],
+            "Max Cent Closeness": max_cent_mesures["Max Cent Closeness"],
+            "Max Cent Betweenness": max_cent_mesures["Max Cent Betweenness"],
+            "Max Cent Eigenvector": max_cent_mesures["Max Cent Eigenvector"],
         }
         return results
     

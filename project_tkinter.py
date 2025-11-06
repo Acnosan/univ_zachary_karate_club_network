@@ -1,6 +1,7 @@
 import networkx as nx
 import tkinter as tk
 from tkinter import messagebox, filedialog
+from tkinter import scrolledtext
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
@@ -102,52 +103,82 @@ class TkinterInterface:
             messagebox.showerror("Error", "Enter two nodes separated by a space.")
     
     def show_info(self):
-        """Display graph statistics."""
-        results = self.metrics
-        lines = []
+        """Display graph statistics """
+        def flat_dict():
+            flat_metrics = {}
+            for key, val in self.metrics.items():
+                if isinstance(val, dict) and all(isinstance(v, dict) for v in val.values()):
+                    for subkey, subval in val.items():
+                        flat_metrics[subkey] = subval
+                else:
+                    flat_metrics[key] = val
+            return flat_metrics
         
-        # Simple metrics on top
-        simple = [f"{k}: {v}" for k, v in results.items() 
-                if not isinstance(v, (dict, list))]
+        def fit_in_window(title, text):
+            """Show resizable scrollable window instead of messagebox."""
+            win = tk.Toplevel()
+            win.title(title)
+            win.geometry("1280x720")  
+            win.resizable(True, True)
+
+            # Scrollable text area
+            txt = scrolledtext.ScrolledText(win, wrap="none", font=("Courier New", 10))
+            txt.insert("1.0", text)
+            txt.configure(state="disabled")  # make read-only
+            txt.pack(expand=True, fill="both")
+
+            # Optional close button
+            btn = tk.Button(win, text="Close", command=win.destroy)
+            btn.pack(pady=5)
+            
+        results = flat_dict()
+        lines = []
+
+        # Simple scalar metrics
+        simple = [f"{k}: {v}" for k, v in results.items() if not isinstance(v, (dict, list))]
         if simple:
             lines.append("\n".join(simple))
             lines.append("")
-        
-        # Extract dictionaries
+
+        # extracting metric dictionaries
         dicts = {k: v for k, v in results.items() if isinstance(v, dict)}
-        
         if dicts:
-            # Column width
-            col_width = 25
-            
-            # Headers
-            headers = [f"{k:<{col_width}}" for k in dicts.keys()]
+            col_width = 30
+
+            # sort by node
+            sorted_dicts = {k: dict(sorted(v.items())) for k, v in dicts.items()}
+            max_rows = max(len(d) for d in sorted_dicts.values())
+
+            # headers (first column = node ID)
+            headers = ["Node".ljust(col_width)] + [f"{k:<{col_width}}" for k in sorted_dicts.keys()]
             lines.append("".join(headers))
-            lines.append("-" * (col_width * len(dicts)))
-            
-            # Get max rows needed
-            max_rows = max(len(d) for d in dicts.values())
-            
+            lines.append("-" * (col_width * (len(sorted_dicts))))
+
             # Build each row
             for i in range(max_rows):
-                row = []
-                for _, dict_vals in dicts.items():
+                node_label = f"node {i+1}".ljust(col_width)
+                row = [node_label]
+                for _, dict_vals in sorted_dicts.items():
                     items = list(dict_vals.items())
+                    # if we still have rows to write into
                     if i < len(items):
-                        node_id, value = items[i]
-                        cell = f"node {node_id}: {value:.3f}"
-                        row.append(f"{cell:<{col_width}}")
+                        _, value = items[i]
+                        if isinstance(value, (int, float)):
+                            cell = f"{value:.2f}" 
+                        else:
+                            cell = f"{value}" 
                     else:
-                        row.append(" " * col_width)
+                        cell = ""
+                    row.append(f"{cell:<{col_width}}")
                 lines.append("".join(row))
-        
-        # Lists at the end
+
+        # Lists at end
         lists = [f"{k}: {v}" for k, v in results.items() if isinstance(v, list)]
         if lists:
             lines.append("")
             lines.extend(lists)
         
-        messagebox.showinfo("Graph Information", "\n".join(lines))
+        fit_in_window("Graph Information", "\n".join(lines))
 
     def export_to_csv(self):
         """Export graph data to CSV file."""
@@ -164,13 +195,23 @@ class TkinterInterface:
             
             with open(file_path, 'w', newline='') as csvfile:
                 writer = csv.writer(csvfile)
-                # for nodes
-                writer.writerow(["Node", "Degree", "Clustering Coefficient"])
+                # for nodes and centrality mesures
+                writer.writerow([
+                    "Node",
+                    "Degree Dist",
+                    "Clustering Coefficient",
+                    "Cent Degree", "Cent Closeness", "Centy Betweenness", "Cent Eigenvector"
+                ])
+                
                 for node in self.G.nodes():
                     writer.writerow([
                         node,
-                        self.metrics['Degree Distribution'][node],
+                        self.metrics['Degree Dist'][node],
                         self.metrics['Clustering Coeff'][node],
+                        self.metrics["Centrality Mesures"]["Cent Degree"][node],
+                        self.metrics["Centrality Mesures"]["Cent Closeness"][node],
+                        self.metrics["Centrality Mesures"]["Cent Betweenness"][node],
+                        self.metrics["Centrality Mesures"]["Cent Eigenvector"][node],
                         ])
                 writer.writerow([])
                 
@@ -183,13 +224,19 @@ class TkinterInterface:
                 
                 # for statistics
                 writer.writerow(["Metric", "Value"])
-                writer.writerow(["Total Nodes", self.metrics["graph_order"]])
-                writer.writerow(["Total Edges", self.metrics["graph_size"]])
-                writer.writerow(["Average Clustering", self.metrics["average_clustering"]])
+                writer.writerow(["Total Nodes", self.metrics["Order (nodes)"]])
+                writer.writerow(["Total Edges", self.metrics["Size (edges)"]])
+                writer.writerow(["Average Clustering", self.metrics["Avg Clustering"]])
                 writer.writerow(["Density", f"{nx.density(self.G):.3f}"])
                 writer.writerow(["Total Triangles", self.metrics["Triangles Count"]])
                 writer.writerow(["Max Kclique", self.metrics["Max Kclique"]])
                 
+                # for max / most centrality mesures
+                writer.writerow(["Most central (degree)", self.metrics["Max Cent Degree"]])
+                writer.writerow(["Most central (closeness)", self.metrics["Max Cent Closeness"]])
+                writer.writerow(["Most central (betweenness)", self.metrics["Max Cent Betweenness"]])
+                writer.writerow(["Most central (eigenvector)", self.metrics["Max Cent Eigenvector"]])
+
             messagebox.showinfo("Success", f"Data exported to:\n{file_path}")
             
         except Exception as e:
@@ -205,7 +252,6 @@ class TkinterInterface:
                     ("PNG files", "*.png"),
                     ("JPEG files", "*.jpg"),
                     ("PDF files", "*.pdf"),
-                    ("SVG files", "*.svg"),
                     ("All files", "*.*")
                 ],
                 title="Save Graph Visualization"
@@ -215,7 +261,7 @@ class TkinterInterface:
                 return  # User cancelled
             
             # Create a new figure for export (higher quality)
-            export_fig = plt.figure(figsize=(10, 8))
+            export_fig = plt.figure(figsize=(16, 12))
             ax = export_fig.add_subplot(111)
             
             pos = nx.spring_layout(self.G)
@@ -271,8 +317,8 @@ class TkinterInterface:
         button_frame = tk.Frame(root)
         button_frame.pack(pady=5)
         # Info button
-        tk.Button(button_frame, text="Show Info", 
-                command=self.show_info).pack(pady=5)
+        tk.Button(button_frame, text="Show Info All", 
+                command=self.show_info).pack(padx=5)
         tk.Button(button_frame, text="Export to CSV", 
                         command=self.export_to_csv).pack(side=tk.LEFT, padx=5)
         tk.Button(button_frame, text="Export Graph to Image", 
