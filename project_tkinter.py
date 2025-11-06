@@ -9,13 +9,13 @@ import matplotlib.pyplot as plt
 
 from typing import Optional
 import csv
-import os
 
 from project_vlast import KarateClub
 
 class TkinterInterface:
     
-    def __init__(self, G, metrics):
+    def __init__(self, graph_class, G, metrics):
+        self.graph_class = graph_class
         self.G = G
         self.metrics = metrics
         self.canvas: Optional[FigureCanvasTkAgg] = None
@@ -23,7 +23,7 @@ class TkinterInterface:
         self.entry_edge: Optional[tk.Entry] = None
         self.fig: Optional[Figure] = None
         self.start_interface()
-        
+
     def draw_graph(self):
         """Draw the graph on the canvas."""
         if self.canvas is None or self.fig is None:
@@ -38,6 +38,11 @@ class TkinterInterface:
                 node_size=600, font_size=10, ax=ax)
         self.canvas.draw()
 
+    def update_metrics(self):
+        """Recalculate metrics after graph changes."""
+        self.G = self.graph_class.build_graph(self.G)
+        self.metrics = self.graph_class.graph_metrics(self.G)
+    
     def add_node(self):
         """Add a new node to the graph."""
         if self.entry_node is None:
@@ -49,6 +54,7 @@ class TkinterInterface:
                 messagebox.showwarning("Error", f"Node {node} already exists.")
             else:
                 self.G.add_node(node)
+                self.update_metrics()
                 messagebox.showinfo("Success", f"Node {node} added.")
                 self.draw_graph()
         except ValueError:
@@ -63,6 +69,7 @@ class TkinterInterface:
             node = int(self.entry_node.get())
             if node in self.G:
                 self.G.remove_node(node)
+                self.update_metrics()
                 messagebox.showinfo("Success", f"Node {node} removed.")
                 self.draw_graph()
             else:
@@ -81,6 +88,7 @@ class TkinterInterface:
                 messagebox.showwarning("Error", "This edge already exists.")
             else:
                 self.G.add_edge(n1, n2)
+                self.update_metrics()
                 messagebox.showinfo("Success", f"Edge ({n1}, {n2}) added.")
                 self.draw_graph()
         except:
@@ -95,13 +103,14 @@ class TkinterInterface:
             n1, n2 = map(int, self.entry_edge.get().split())
             if self.G.has_edge(n1, n2):
                 self.G.remove_edge(n1, n2)
+                self.update_metrics()
                 messagebox.showinfo("Success", f"Edge ({n1}, {n2}) removed.")
                 self.draw_graph()
             else:
                 messagebox.showwarning("Error", "This edge does not exist.")
         except:
             messagebox.showerror("Error", "Enter two nodes separated by a space.")
-    
+
     def show_info(self):
         """Display graph statistics """
         def flat_dict():
@@ -130,7 +139,8 @@ class TkinterInterface:
             # Optional close button
             btn = tk.Button(win, text="Close", command=win.destroy)
             btn.pack(pady=5)
-            
+
+        self.update_metrics()
         results = flat_dict()
         lines = []
 
@@ -156,11 +166,17 @@ class TkinterInterface:
 
             # Build each row
             for i in range(max_rows):
-                node_label = f"node {i+1}".ljust(col_width)
+                # Get the actual node ID from the first dictionary
+                first_dict_items = list(list(sorted_dicts.values())[0].items())
+                if i < len(first_dict_items):
+                    node_id = first_dict_items[i][0]
+                    node_label = f"Node {node_id}".ljust(col_width)
+                else:
+                    node_label = "".ljust(col_width)
+                
                 row = [node_label]
                 for _, dict_vals in sorted_dicts.items():
                     items = list(dict_vals.items())
-                    # if we still have rows to write into
                     if i < len(items):
                         _, value = items[i]
                         if isinstance(value, (int, float)):
@@ -241,7 +257,7 @@ class TkinterInterface:
             
         except Exception as e:
             messagebox.showerror("Error", f"Failed to export CSV:\n{str(e)}")
-    
+
     def export_to_image(self):
         """Export graph visualization to image file."""
         try:
@@ -279,7 +295,7 @@ class TkinterInterface:
             
         except Exception as e:
             messagebox.showerror("Error", f"Failed to export image:\n{str(e)}")
-        
+
     def start_interface(self):
         """Initialize and start the GUI."""
         root = tk.Tk()
@@ -298,31 +314,25 @@ class TkinterInterface:
         self.entry_node = tk.Entry(frame, width=10)
         self.entry_node.grid(row=0, column=1)
 
-        tk.Button(frame, text="Add Node", 
-                command=self.add_node).grid(row=0, column=2)
-        tk.Button(frame, text="Remove Node", 
-                command=self.remove_node).grid(row=0, column=3)
+        tk.Button(frame, text="Add Node", command=self.add_node).grid(row=0, column=2)
+        tk.Button(frame, text="Remove Node", command=self.remove_node).grid(row=0, column=3)
 
         # Edge management
         tk.Label(frame, text="Edge (n1 n2):").grid(row=1, column=0)
         self.entry_edge = tk.Entry(frame, width=10)
         self.entry_edge.grid(row=1, column=1)
 
-        tk.Button(frame, text="Add Edge", 
-                command=self.add_edge).grid(row=1, column=2)
-        tk.Button(frame, text="Remove Edge", 
-                command=self.remove_edge).grid(row=1, column=3)
+        tk.Button(frame, text="Add Edge", command=self.add_edge).grid(row=1, column=2)
+        tk.Button(frame, text="Remove Edge", command=self.remove_edge).grid(row=1, column=3)
         
         # Info and Export buttons frame
         button_frame = tk.Frame(root)
         button_frame.pack(pady=5)
+        
         # Info button
-        tk.Button(button_frame, text="Show Info All", 
-                command=self.show_info).pack(padx=5)
-        tk.Button(button_frame, text="Export to CSV", 
-                        command=self.export_to_csv).pack(side=tk.LEFT, padx=5)
-        tk.Button(button_frame, text="Export Graph to Image", 
-                command=self.export_to_image).pack(side=tk.LEFT, padx=5)
+        tk.Button(button_frame, text="Show Info All", command=self.show_info).pack(side=tk.LEFT, padx=5)
+        tk.Button(button_frame, text="Export to CSV", command=self.export_to_csv).pack(side=tk.LEFT, padx=5)
+        tk.Button(button_frame, text="Export Graph to Image", command=self.export_to_image).pack(side=tk.LEFT, padx=5)
 
         self.draw_graph()
         root.mainloop()
@@ -367,4 +377,4 @@ if __name__ == "__main__":
     graph_class = KarateClub(karate_club_nodes)
     graph = graph_class.build_graph()
     metrics = graph_class.graph_metrics(graph)
-    interface = TkinterInterface(graph, metrics)
+    interface = TkinterInterface(graph_class, graph, metrics)

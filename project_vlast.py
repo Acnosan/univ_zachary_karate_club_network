@@ -4,6 +4,7 @@ import numpy as np
 from typing import Dict, Tuple, List, Any
 
 class KarateClub:
+    
     def __init__(self, karate_club_nodes):
         self.karate_club_nodes = karate_club_nodes
         self.n_len = len(self.karate_club_nodes)
@@ -17,34 +18,37 @@ class KarateClub:
                 adj_mat[neighbord-1][node-1] = 1
         return adj_mat
     
-    
-    def build_graph(self):
-        """ to convert the adjacency matrix into networkx graph """
-        adj_mat = self.adjacency()
-        # using mapping here cause the nx uses 0-indexing, and we want the 1-indexing so we increase by 1 all nodes
-        mapping = {i: i+1 for i in range(self.n_len)}
-        graph = nx.relabel_nodes(nx.from_numpy_array(adj_mat), mapping)
+    def build_graph(self, G=None):
+        """ Build or update graph """
+        if G is None:
+            # Initial build from adjacency matrix
+            adj_mat = self.adjacency()
+            mapping = {i: i+1 for i in range(self.n_len)}
+            graph = nx.relabel_nodes(nx.from_numpy_array(adj_mat), mapping)
+        else:
+            # Use existing modified graph
+            graph = G
+        self.n_len = graph.number_of_nodes()
         return graph
     
-    
     def visualize(self, graph, node_color="lightblue"):
-        
         """ Visualization of the graph """
         plt.figure(figsize=(12,4))
         nx.draw(graph, with_labels=True, node_color=node_color, node_size=600, font_size=12)
         plt.title("Zachary's Karate Club Network")
         plt.show()
-        
+    
     def graph_metrics(self, graph):
         
         def count_size_order(graph) -> Tuple[int, int]:
             """ counting of the size and order of the graph"""
             print("SIZE AND ORDER")
             print("="*30)
+            order = int(self.n_len)
             size = int(graph.number_of_edges())
-            order = int(len(self.karate_club_nodes))
+            
             print(f"Graph Size :{size}, Order : {order}")
-            return size, order
+            return order, size
         
         def degree_dist(graph) -> Dict[int, int]:
             """ counting the degree distribution for each node"""
@@ -63,7 +67,7 @@ class KarateClub:
             clustering_coeff_dict = {}
             c_sum = 0
             for i in range(1,self.n_len+1):
-                neighbors = self.karate_club_nodes[i]
+                neighbors = graph[i]
                 k = len(neighbors)
                 # for nodes with less than 2 neighbors
                 if k<2:
@@ -74,7 +78,7 @@ class KarateClub:
                 links = 0
                 for u in neighbors:
                     for v in neighbors:
-                        if u < v and v in self.karate_club_nodes[u]:
+                        if u < v and v in graph[u]:
                             links += 1
                 clustering_coeff_dict[i] = round((2 * links) / (k * (k - 1)), 2)
                 print(f"Node {i} Coeff : {(clustering_coeff_dict[i]):.2f}")
@@ -166,7 +170,7 @@ class KarateClub:
                 }
             )
         
-        graph_size, graph_order = count_size_order(graph)
+        graph_order, graph_size = count_size_order(graph)
         degree_dist_dict = degree_dist(graph)
         clustering_coeff_dict, average_clustering = clustering_coeff(graph)
         triangles_counter = triangle_motif()
