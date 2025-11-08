@@ -1,2 +1,7 @@
+
+.gitignore
+
 static/
 __pycache__
+showcase_vid.mp4
+report.pdf
